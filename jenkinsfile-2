@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+    environment {
+        PATH = "$PATH:/usr/share/maven/bin"
+    }
+    stages {
+        stage('git checkout') {
+            steps {
+                git 'https://github.com/sssandeep9999/java-login-app-project.git'
+            }
+        }
+        stage('Maven Build') {
+            steps {
+                sh "mvn clean install"
+            }
+        }
+        stage('SonarQube analysis') {
+            steps {
+            withSonarQubeEnv('Soner-Server-8.9.10') {
+            sh "mvn sonar:sonar"
+            }
+            }
+        }
+        stage('Artifact Upload') {
+            steps {
+                nexusArtifactUploader artifacts: [[artifactId: '01-maven-web-app', classifier: '', file: 'target/01-maven-web-app.war', type: 'war']], credentialsId: 'NEXUS-CREDENTIALS', groupId: 'SATYASAISANDEEPGROUPOFPROJECTS', nexusUrl: '13.232.161.44:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'SatyaSaiSandeep901-project-repo', version: '1.0-SNAPSHOT'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh "ansible-playbook -i myhosts mytomsetup.yml"
+            }
+        }
+    }
+}
